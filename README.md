@@ -1,6 +1,6 @@
 # uralex-export
 
-Python3 command-line tool to create MrBayes, BEAST and SplitsTree NEXUS files from the [UraLex Basic vocabulary dataset(https://zenodo.org/record/1459402]. Use `uralex-export.py` or `uralex-export.py --help` to see available options.
+Python3 command-line tool to create MrBayes, BEAST and SplitsTree NEXUS files from the [UraLex Basic vocabulary dataset](https://zenodo.org/record/1459402). Use `uralex-export.py` or `uralex-export.py --help` to see available options.
 
 ## Basic usage with release version of dataset
 
