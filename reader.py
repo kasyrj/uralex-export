@@ -17,7 +17,7 @@ MNAMES_FILE              = 'Meanings.tsv'
 MISSING_VALUES           = ("?","0")
 MULTISTATE_CHARS         = "abcdefghijklmnopqrstuvwxyz123456789"
 
-class UraLexReader():
+class UraLexReader:
     def __init__(self, version, use_correlate_chars):
         if version == "raw":
             self._readCustomVersion(version)

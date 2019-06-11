@@ -2,7 +2,7 @@
 
 import sys
 
-class UralexExporter():
+class UralexExporter:
     
     def __init__(self, dataset):
         self._dataset = dataset
