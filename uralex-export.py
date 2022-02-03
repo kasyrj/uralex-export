@@ -13,6 +13,7 @@ checkPythonVersion()
         
 import os
 import io
+import errno
 import argparse
 import urllib.request
 import reader
@@ -107,4 +108,10 @@ if __name__ == '__main__':
 
     else:
         for line in outlines:
-            print(line)
+            try:
+                print(line)
+            # handle broken pipe
+            except IOError as e:
+                if e.errno == errno.EPIPE:
+                    sys.exit(0)
+
