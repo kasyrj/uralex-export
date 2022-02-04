@@ -25,6 +25,7 @@ PARSER_DESC           = "Export phylogenetic formats from BEDLAN spreadsheet dat
 DEFAULT_NEXUS_DIALECT = "beast"
 DEFAULT_CHARSETS      = True
 DEFAULT_MEANING_LIST  = "all"
+DEFAULT_EXPERIMENTAL  = False
 
 parser = argparse.ArgumentParser(description=PARSER_DESC)
 
@@ -37,6 +38,11 @@ parser.add_argument("-x","--exclude-taxa",
                     help="comma-separated list of taxa to exclude",
                     default="",
                     type=str)
+parser.add_argument("-X", "--experimental",
+                    dest="experimental",
+                    help="use experimental versions of data if available",
+                    default=DEFAULT_EXPERIMENTAL,
+                    action="store_true")
 parser.add_argument("-l","--meaning-list",
                     dest="meaning_list",
                     help="meaning list to use. Defaults to \"" + DEFAULT_MEANING_LIST + "\"",
@@ -80,7 +86,7 @@ if __name__ == '__main__':
     if (args.raw_folder == True):
         dataset = reader.UraLexReader("raw", args.correlate)
     else:
-        dataset = reader.UraLexReader(versions.getLatestVersion(), args.correlate)
+        dataset = reader.UraLexReader(versions.getLatestVersion(args.experimental), args.correlate)
 
     exporter = exporter.UralexExporter(dataset)
     exporter.setMeaningList(args.meaning_list)

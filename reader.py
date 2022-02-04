@@ -17,21 +17,38 @@ MNAMES_FILE              = 'Meanings.tsv'
 MISSING_VALUES           = ("?","0")
 MULTISTATE_CHARS         = "abcdefghijklmnopqrstuvwxyz123456789"
 
+
 class UraLexReader:
     def __init__(self, version, use_correlate_chars):
         if version == "raw":
             self._readCustomVersion(version)
         else:
             self._readReleaseVersion(version)
+        self._detectFields()
         self._missing_values = MISSING_VALUES
         self._language_dict = self._getLanguageDict()
         self._data_dict = self._getDataDict(use_correlate_chars)
         self._mnglists_dict = self._getMngListsDict()
         self.MULTISTATE_CHARS = MULTISTATE_CHARS
+        self._language_id = None
+        self._language_ascii_id = None
 
     def __del__(self):
         pass
-        
+
+    def _detectFields(self):
+        '''Detect whether using uralex1/2 fields or uralex3 fields and set up accordingly'''
+        # language_id
+        if "lgid3" in self._data.keys():
+            self._language_id = "lgid3"
+        elif "uralex_lang" in self._data.keys():
+            self._language_id = "uralex_lang"
+        # language_ascii_id
+        if "ASCII_name" in self._languages.keys():
+            self._language_ascii_id = "ASCII_name"
+        elif "uralex_lang" in self._languages.keys(): 
+            self._language_ascii_id = "uralex_lang"           
+    
     def getMeaningLists(self):
         '''Return a list of all meaning lists'''
         mnglists = []
@@ -71,7 +88,7 @@ class UraLexReader:
         '''Read custom version from an extracted raw folder'''
         self._version = "custom"
         try:
-            self._citations   = csvhelpers.readCsv(open(os.path.join("raw", CITATION_FILE),    encoding="utf-8"), as_dict=True)
+            # self._citations   = csvhelpers.readCsv(open(os.path.join("raw", CITATION_FILE),    encoding="utf-8"), as_dict=True)
             self._languages   = csvhelpers.readCsv(open(os.path.join("raw", LANGUAGE_FILE),    encoding="utf-8"), as_dict=True)
             self._mlists      = csvhelpers.readCsv(open(os.path.join("raw", MLISTS_FILE),      encoding="utf-8"), as_dict=True)
             self._mlists_desc = csvhelpers.readCsv(open(os.path.join("raw", MLISTS_DESC_FILE), encoding="utf-8"), as_dict=True)
@@ -102,7 +119,7 @@ class UraLexReader:
             self._downloadDataset(version)
         try:
             z = zipfile.ZipFile(version["zipfile"])
-            self._citations   = csvhelpers.readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + CITATION_FILE),    encoding="utf-8"), as_dict=True)
+            # self._citations   = csvhelpers.readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + CITATION_FILE),    encoding="utf-8"), as_dict=True)
             self._languages   = csvhelpers.readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + LANGUAGE_FILE),    encoding="utf-8"), as_dict=True)
             self._mlists      = csvhelpers.readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + MLISTS_FILE),      encoding="utf-8"), as_dict=True)
             self._mlists_desc = csvhelpers.readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + MLISTS_DESC_FILE), encoding="utf-8"), as_dict=True)
@@ -114,12 +131,12 @@ class UraLexReader:
             sys.exit(1)
             
     def _getLanguageDict(self):
-        '''Generate a language dict (key: lgid3, value: ASCII_name)'''
-        lgid3_set = set(self._data["lgid3"])
+        '''Generate a language dict (key: _language_id, value: _language_ascii_id)'''
+        language_id_set = set(self._data[self._language_id])
         language_dict = {}
-        for key in lgid3_set:
-            i = self._languages["lgid3"].index(key)
-            language_dict[key] = self._languages["ASCII_name"][i]
+        for key in language_id_set:
+            i = self._languages[self._language_id].index(key)
+            language_dict[key] = self._languages[self._language_ascii_id][i]
         return language_dict
 
     def _getCognSetOrder(self):
@@ -164,7 +181,7 @@ class UraLexReader:
         return mnglists
 
     def _getDataDict(self,use_correlate_chars):
-        '''Return a data dict with [ASCII_name][mng] structure'''
+        '''Return a data dict with [language_ascii_name][mng] structure'''
         if use_correlate_chars == True:
             char_set_order = self._getFormSetOrder()
         else:
@@ -180,8 +197,8 @@ class UraLexReader:
         for lang in data_matrix.keys():
             for mng in meaning_set:
                 data_matrix[lang][mng] = []
-        for i in range(len(self._data["lgid3"])):
-            current_language = self._data["lgid3"][i]
+        for i in range(len(self._data[self._language_id])):
+            current_language = self._data[self._language_id][i]
             current_meaning = self._data["uralex_mng"][i]
             if use_correlate_chars == True:
                 current_data = self._data["form_set"][i].strip().rstrip()
