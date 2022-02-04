@@ -106,3 +106,6 @@ venv.bak/
 # dataset packages and folders
 *.zip
 /raw
+
+# generated files
+*.nex
