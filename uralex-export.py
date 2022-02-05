@@ -21,7 +21,7 @@ import versions
 import exporter
 
 #implied constants
-PARSER_DESC           = "Export phylogenetic formats from BEDLAN spreadsheet data."
+PARSER_DESC           = "Export phylogenetic formats from the raw files of UraLex basic vocabulary dataset."
 DEFAULT_NEXUS_DIALECT = "beast"
 DEFAULT_CHARSETS      = True
 DEFAULT_MEANING_LIST  = "all"
