@@ -39,14 +39,14 @@ class UraLexReader:
     def _detectFields(self):
         '''Detect whether using uralex1/2 fields or uralex3 fields and set up accordingly'''
         # language_id
-        if "lgid3" in self._data.keys():
+        if "lgid3" in self._data[0].keys():
             self._language_id = "lgid3"
-        elif "uralex_lang" in self._data.keys():
+        elif "uralex_lang" in self._data[0].keys():
             self._language_id = "uralex_lang"
         # language_ascii_id
-        if "ASCII_name" in self._languages.keys():
+        if "ASCII_name" in self._languages[0].keys():
             self._language_ascii_id = "ASCII_name"
-        elif "uralex_lang" in self._languages.keys(): 
+        elif "uralex_lang" in self._languages[0].keys(): 
             self._language_ascii_id = "uralex_lang"
             
     def _readCsv(self, filename):
@@ -144,8 +144,8 @@ class UraLexReader:
         language_dict = {}
         for key in lgid3_set:
             for row in self._languages:
-                if row["lgid3"] == key:
-                    language_dict[key] = row[self._languages_ascii_id]
+                if row[self._language_id] == key:
+                    language_dict[key] = row[self._language_ascii_id]
                     break
         return language_dict
     
