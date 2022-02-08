@@ -107,16 +107,16 @@ class UraLexReader:
         self._version = os.path.splitext(version["zipfile"])[0]
         if os.path.isfile(version["zipfile"]) == False:
             self._downloadDataset(version)
-        #try:
-        z = zipfile.ZipFile(version["zipfile"])
-        self._languages   = self._readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + LANGUAGE_FILE)))
-        self._mlists      = self._readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + MLISTS_FILE)))
-        self._mnames      = self._readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + MNAMES_FILE)))
-        self._data        = self._readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + DATA_MAIN_FILE)))
-        z.close()
-        #except:
-        #    print("%s: Could not load dataset zip file contents." % version["zipfile"], file=sys.stderr)
-        #    sys.exit(1)
+        try:
+            z = zipfile.ZipFile(version["zipfile"])
+            self._languages   = self._readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + LANGUAGE_FILE)))
+            self._mlists      = self._readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + MLISTS_FILE)))
+            self._mnames      = self._readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + MNAMES_FILE)))
+            self._data        = self._readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + DATA_MAIN_FILE)))
+            z.close()
+        except:
+            print("%s: Could not load dataset zip file contents." % version["zipfile"], file=sys.stderr)
+            sys.exit(1)
             
     def _getLanguageDict(self):
         '''Generate a language dict (key: lgid3, value: ASCII_name)'''
