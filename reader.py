@@ -5,8 +5,8 @@ import io
 import os
 import sys
 import zipfile
-import csvhelpers
 import urllib.request
+import csv
 
 DATA_MAIN_FILE           = 'Data.tsv'
 LANGUAGE_FILE            = 'Languages.tsv'
@@ -47,12 +47,19 @@ class UraLexReader:
         if "ASCII_name" in self._languages.keys():
             self._language_ascii_id = "ASCII_name"
         elif "uralex_lang" in self._languages.keys(): 
-            self._language_ascii_id = "uralex_lang"           
+            self._language_ascii_id = "uralex_lang"
+            
+    def _readCsv(self, filename):
+        rows = []
+        reader = csv.DictReader(filename, delimiter="\t")
+        for row in reader:
+            rows.append(row)
+        return rows
     
     def getMeaningLists(self):
         '''Return a list of all meaning lists'''
         mnglists = []
-        for i in self._mlists.keys():
+        for i in self._mlists[0].keys():
             if i not in ["LJ_rank","uralex_mng","mng_item"]:
                 mnglists.append(i)
         return sorted(mnglists)
@@ -65,11 +72,13 @@ class UraLexReader:
         '''Return list of meanings belonging to mnglist'''
         mngs = []
         if mnglist == "all":
-            mngs = set(self._data["uralex_mng"])
+            for row in self._data:
+                mngs.append(row["uralex_mng"])
+            mngs = set(mngs)
         else:
-            for i in range(len(self._mlists[mnglist])):
-                if self._mlists[mnglist][i] == "1":
-                    mngs.append(self._mlists["uralex_mng"][i])
+            for row in self._mlists:
+                if row[mnglist] == "1":
+                    mngs.append(row["uralex_mng"])
         return sorted(mngs)
 
     def getCharacterAlignment(self, language, meaning):
@@ -88,12 +97,10 @@ class UraLexReader:
         '''Read custom version from an extracted raw folder'''
         self._version = "custom"
         try:
-            # self._citations   = csvhelpers.readCsv(open(os.path.join("raw", CITATION_FILE),    encoding="utf-8"), as_dict=True)
-            self._languages   = csvhelpers.readCsv(open(os.path.join("raw", LANGUAGE_FILE),    encoding="utf-8"), as_dict=True)
-            self._mlists      = csvhelpers.readCsv(open(os.path.join("raw", MLISTS_FILE),      encoding="utf-8"), as_dict=True)
-            self._mlists_desc = csvhelpers.readCsv(open(os.path.join("raw", MLISTS_DESC_FILE), encoding="utf-8"), as_dict=True)
-            self._mnames      = csvhelpers.readCsv(open(os.path.join("raw", MNAMES_FILE),      encoding="utf-8"), as_dict=True)
-            self._data        = csvhelpers.readCsv(open(os.path.join("raw", DATA_MAIN_FILE),   encoding="utf-8"), as_dict=True)
+            self._languages   = self._readCsv(open(os.path.join("raw", LANGUAGE_FILE)))
+            self._mlists      = self._readCsv(open(os.path.join("raw", MLISTS_FILE)))
+            self._mnames      = self._readCsv(open(os.path.join("raw", MNAMES_FILE)))
+            self._data        = self._readCsv(open(os.path.join("raw", DATA_MAIN_FILE)))
 
         except:
             print("Could not load raw folder contents. Please ensure that you have a 'raw' folder containing all the TSV files.")
@@ -119,26 +126,29 @@ class UraLexReader:
             self._downloadDataset(version)
         try:
             z = zipfile.ZipFile(version["zipfile"])
-            # self._citations   = csvhelpers.readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + CITATION_FILE),    encoding="utf-8"), as_dict=True)
-            self._languages   = csvhelpers.readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + LANGUAGE_FILE),    encoding="utf-8"), as_dict=True)
-            self._mlists      = csvhelpers.readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + MLISTS_FILE),      encoding="utf-8"), as_dict=True)
-            self._mlists_desc = csvhelpers.readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + MLISTS_DESC_FILE), encoding="utf-8"), as_dict=True)
-            self._mnames      = csvhelpers.readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + MNAMES_FILE),      encoding="utf-8"), as_dict=True)
-            self._data        = csvhelpers.readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + DATA_MAIN_FILE),   encoding="utf-8"), as_dict=True)
+            self._languages   = self._readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + LANGUAGE_FILE)))
+            self._mlists      = self._readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + MLISTS_FILE)))
+            self._mnames      = self._readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + MNAMES_FILE)))
+            self._data        = self._readCsv(io.TextIOWrapper(z.open(version["dir"] + "/raw/" + DATA_MAIN_FILE)))
             z.close()
         except:
             print("%s: Could not load dataset zip file contents." % version["zipfile"], file=sys.stderr)
             sys.exit(1)
             
     def _getLanguageDict(self):
-        '''Generate a language dict (key: _language_id, value: _language_ascii_id)'''
-        language_id_set = set(self._data[self._language_id])
+        '''Generate a language dict (key: lgid3, value: ASCII_name)'''
+        lgid3_set = []
+        for row in self._data:
+            lgid3_set.append(row[self._language_id])
+        lgid3_set = set(lgid3_set)
         language_dict = {}
-        for key in language_id_set:
-            i = self._languages[self._language_id].index(key)
-            language_dict[key] = self._languages[self._language_ascii_id][i]
+        for key in lgid3_set:
+            for row in self._languages:
+                if row["lgid3"] == key:
+                    language_dict[key] = row[self._languages_ascii_id]
+                    break
         return language_dict
-
+    
     def _getCognSetOrder(self):
         '''Return a list of all cogn_set values present in the data matrix, with
         one-character sets in an alphabetical order, followed by two-character sets in
@@ -146,7 +156,11 @@ class UraLexReader:
         cogn_sorting_order = []
         one_char = []
         two_char = []
-        for i in set(self._data["cogn_set"]):
+        cogn_characters = []
+        for row in self._data:
+            cogn_characters.append(row["cogn_set"])
+        cogn_characters = set(cogn_characters)
+        for i in cogn_characters:
             try:
                 a,b = i
                 two_char.append(i)
@@ -159,7 +173,12 @@ class UraLexReader:
     def _getFormSetOrder(self):
         '''Return a list of all form_set values present in the data matrix, in an ascending order.'''
         forms = []
-        for i in set(self._data["form_set"]):
+        form_characters = []
+        for row in self._data:
+            form_characters.append(row["form_set"])
+        form_characters = set(form_characters)
+
+        for i in form_characters:
             if i not in self._missing_values:
                 forms.append(i)
         forms.sort(key=int)
@@ -168,16 +187,16 @@ class UraLexReader:
     def _getMngListsDict(self):
         '''Return a meaning list dict, including an "all" list containing all meanings'''
         mnglists = {}
-        for i in self._mlists.keys():
-            if i not in ["LJ_rank","uralex_mng","mng_item"]:
-                mnglists[i] = []
-        for mlist in mnglists.keys():
-            for i in range(len(self._mlists[mlist])):
-                if self._mlists[mlist][i] == "1":
-                    mnglists[mlist].append(self._mlists["uralex_mng"][i])
+        for k in self._mlists[0].keys():
+            if k not in ["LJ_rank","uralex_mng","mng_item"]:
+                mnglists[k] = []
+        for row in self._mlists:
+            for mlist in mnglists.keys():
+                if row[mlist] == "1":
+                    mnglists[mlist].append(row["uralex_mng"])
         mnglists["all"] = []
-        for i in self._mlists["uralex_mng"]:
-            mnglists["all"].append(i)
+        for row in self._mlists:
+            mnglists["all"].append(row["uralex_mng"])
         return mnglists
 
     def _getDataDict(self,use_correlate_chars):
@@ -193,17 +212,20 @@ class UraLexReader:
         data_matrix = {}
         for i in self._language_dict.values():
             data_matrix[i] = {}
-        meaning_set = set(self._data["uralex_mng"])
+        meaning_set = []
+        for row in self._data:
+            meaning_set.append(row["uralex_mng"])
+        meaning_set = set(meaning_set)
         for lang in data_matrix.keys():
             for mng in meaning_set:
                 data_matrix[lang][mng] = []
-        for i in range(len(self._data[self._language_id])):
-            current_language = self._data[self._language_id][i]
-            current_meaning = self._data["uralex_mng"][i]
+        for row in self._data:
+            current_language = row[self._language_id]
+            current_meaning = row["uralex_mng"]
             if use_correlate_chars == True:
-                current_data = self._data["form_set"][i].strip().rstrip()
+                current_data = row["form_set"].strip().rstrip()
             else:
-                current_data = self._data["cogn_set"][i].strip().rstrip()
+                current_data = row["cogn_set"].strip().rstrip()
             l = self._language_dict[current_language]
             if current_data == "0":
                 continue

@@ -42,13 +42,14 @@ class UralexExporter:
                 print(i, file=sys.stderr)
             sys.exit(1)
 
-        if edialect in self._getValidDialects(self._export_format):
-            self._export_dialect = edialect
-        else:
-            print("Invalid %s dialect. Must be one of following: \n" % self._export_format, file=sys.stderr)
-            for i in self._getValidDialects(self._export_format):
-                print(i, file=sys.stderr)
-            sys.exit(1)
+        if self._getValidDialects(self._export_format) != []:
+            if edialect in self._getValidDialects(self._export_format):
+                self._export_dialect = edialect
+            else:
+                print("Invalid %s dialect. Must be one of following: \n" % self._export_format, file=sys.stderr)
+                for i in self._getValidDialects(self._export_format):
+                    print(i, file=sys.stderr)
+                sys.exit(1)
 
     def setLanguageExcludeList(self,llist):
         '''Set excluded languages'''
@@ -65,18 +66,19 @@ class UralexExporter:
         '''Export data based on exporter settings'''
         if self._export_format == "nexus":
             return self._exportNexus()
+        if self._export_format == "cldf":
+            return self._exportCldf()
         return []
 
     def _getValidFormats(self):
         '''Return list of valid formats'''
-        return ["nexus"]           
+        return ["nexus","cldf"]           
     
     def _getValidDialects(self, format):
         '''Return list of valid dialects of format'''
         if format == "nexus":
             return ["mrbayes", "beast", "splitstree"]
-        else:
-            return []
+        return []
 
     def _getNexusHeader(self):
         '''Return list of NEXUS header lines'''
@@ -254,6 +256,18 @@ class UralexExporter:
             outlines += self._getAssumptionsBlock()
         elif self._export_dialect == "mrbayes":
             outlines += self._getMrBayesBlock()
+        return outlines
+
+    def _exportCldf(self):
+        '''Export CLDF format'''
+        outlines = ["Language_ID,Feature_ID,Value"]
+        langs = self._getExportedLanguages()
+        mngs = self._getExportedMeanings()
+        for l in langs:
+            for m in mngs:
+                c = self._dataset.getCharacterAlignment(l, m)
+                for i in c:
+                    outlines.append(l + "," + m + "," + i)
         return outlines
 
 if __name__ == '__main__':

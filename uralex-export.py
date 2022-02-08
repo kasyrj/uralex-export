@@ -21,7 +21,7 @@ import versions
 import exporter
 
 #implied constants
-PARSER_DESC           = "Export phylogenetic formats from BEDLAN spreadsheet data."
+PARSER_DESC           = "Export phylogenetic formats from the raw files of UraLex basic vocabulary dataset."
 DEFAULT_NEXUS_DIALECT = "beast"
 DEFAULT_CHARSETS      = True
 DEFAULT_MEANING_LIST  = "all"
@@ -50,7 +50,7 @@ parser.add_argument("-l","--meaning-list",
                     type=str)
 parser.add_argument("-f","--format",
                     dest="format",
-                    help="Export format. Currently only one valid option: nexus.",
+                    help="Export format. Valid options: nexus, cldf.",
                     default="nexus",
                     type=str)
 parser.add_argument("-d","--dialect",
