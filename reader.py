@@ -158,8 +158,8 @@ class UraLexReader:
         forms = []
         form_characters = []
         for row in self._data:
-            cogn_characters.append(row["form_set"])
-        form_characters = set(cogn_characters)
+            form_characters.append(row["form_set"])
+        form_characters = set(form_characters)
 
         for i in form_characters:
             if i not in self._missing_values:
