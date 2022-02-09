@@ -12,7 +12,7 @@ class UralexExporter:
         # self._language_exclude_list = None # set by setLanguageExcludelist
         # self._exported_languages = None    # cached languages, built as needed
         # self._exported_meanings = None     # cached meanings, built as needed
-        self._valid_chars = {}             # cached character states, built as needed
+        self._character_state_cache = {}             # cached character states, built as needed
 
     def __del__(self):
         pass
@@ -101,8 +101,8 @@ class UralexExporter:
 
     def _getValidCharacterStates(self, meaning):
         '''Return a sorted set of valid character states for a meaning based on exporter settings'''
-        if meaning in self._valid_chars.keys():
-            return self._valid_chars[meaning]
+        if meaning in self._character_state_cache.keys():
+            return self._character_state_cache[meaning]
         valid_chars = []
         for l in self._dataset.getLanguages():
             current = self._dataset.getCharacterAlignment(l, meaning)
@@ -110,10 +110,8 @@ class UralexExporter:
                 if c == "?":
                     continue
                 valid_chars += c
-        valid_chars = set(valid_chars)
-        result = sorted(valid_chars,
-                        key=lambda word: [self._dataset.MULTISTATE_CHARS.index(c) for c in word])
-        self._valid_chars[meaning] = result
+        result = sorted(set(valid_chars))
+        self._character_state_cache[meaning] = result
         return result
 
     def _getMeaningAsBinary(self, language, meaning):

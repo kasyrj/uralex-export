@@ -13,7 +13,6 @@ LANGUAGE_FILE            = 'Languages.tsv'
 MLISTS_FILE              = 'Meaning_lists.tsv'
 MNAMES_FILE              = 'Meanings.tsv'
 MISSING_VALUES           = ("?","0")
-MULTISTATE_CHARS         = "abcdefghijklmnopqrstuvwxyz123456789"
 
 class UraLexReader:
     def __init__(self, version, args):
@@ -34,8 +33,6 @@ class UraLexReader:
         self._languages = self.getLanguages(True)
         self._meaning_list = args.meaning_list
         self._data_dict = self._getDataDict(args.correlate)
-        self._mnglists_dict = self._getMngListsDict()
-        self.MULTISTATE_CHARS = MULTISTATE_CHARS
 
     def __del__(self):
         pass
@@ -81,11 +78,7 @@ class UraLexReader:
 
     def getCharacterAlignment(self, language, meaning):
         '''Return character alignment of meaning in language'''
-        result = self._data_dict[language][meaning]
-        if "?" in result:
-            return result
-        return sorted(result,
-                      key=lambda word: [MULTISTATE_CHARS.index(c) for c in word])
+        return self._data_dict[language][meaning]
 
     def getVersion(self):
         '''Return dataset version'''
@@ -167,21 +160,6 @@ class UraLexReader:
                 forms.append(i)
         forms.sort(key=int)
         return(forms)
-
-    def _getMngListsDict(self):
-        '''Return a meaning list dict, including an "all" list containing all meanings'''
-        mnglists = {}
-        for k in self._mlists[0].keys():
-            if k not in ["LJ_rank","uralex_mng","mng_item"]:
-                mnglists[k] = []
-        for row in self._mlists:
-            for mlist in mnglists.keys():
-                if row[mlist] == "1":
-                    mnglists[mlist].append(row["uralex_mng"])
-        mnglists["all"] = []
-        for row in self._mlists:
-            mnglists["all"].append(row["uralex_mng"])
-        return mnglists
 
     def _addUralexLanguageCode(self):
         '''Add ASCII language codes to raw data to ease processing'''
@@ -269,7 +247,6 @@ class UraLexReader:
             char_set_order = self._getFormSetOrder()
         else:
             char_set_order = self._getCognSetOrder()
-        char_set_dict = {}
         data_matrix = {}
         for lang in self.getLanguages():
             data_matrix[lang] = {}
@@ -281,9 +258,9 @@ class UraLexReader:
             current_language = row["uralex_lang"]
             current_meaning = row["uralex_mng"]
             if use_correlate_chars == True:
-                current_data = row["form_set"].strip().rstrip()
+                current_data = row["form_set"].strip()
             else:
-                current_data = row["cogn_set"].strip().rstrip()
+                current_data = row["cogn_set"].strip()
             if current_data == "0":
                 current_data = "?"
             data_matrix[current_language][current_meaning].append(current_data)
