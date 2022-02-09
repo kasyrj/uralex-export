@@ -7,7 +7,6 @@ class UralexExporter:
     def __init__(self, dataset):
         self._dataset = dataset
         self._with_charsets = None         # set by setCharsets
-        self._meaning_list = None          # set by setMeaningList
         self._export_format = None         # set by setFormat
         self._export_dialect = None        # set by setFormat
         # self._language_exclude_list = None # set by setLanguageExcludelist
@@ -22,16 +21,6 @@ class UralexExporter:
         '''Set exporter to export without charsets for each meaning'''
         self._with_charsets = value
 
-    def setMeaningList(self,mlist):
-        '''Set meaning list for exporter'''
-        if mlist in self._dataset.getMeaningLists() + ["all"]:
-            self._meaning_list = mlist
-        else:
-            print("Invalid meaning list. Must be one of following: \n",file=sys.stderr)
-            for l in self._dataset.getMeaningLists() + ["all"]:
-                print(l, file=sys.stderr)
-            sys.exit(1)
-        
     def setFormat(self, eformat, edialect):
         '''Set up exporter's export format and dialect'''
         if eformat in self._getValidFormats():
@@ -55,9 +44,9 @@ class UralexExporter:
         '''Set excluded languages'''
         languages = self._dataset.getLanguages()
         for i in llist:
-            if i not in languages.values():
+            if i not in languages:
                 print("Unknown language in exclude language list: %s.\n Valid values are:\n" % i, file=sys.stderr)
-                for i in sorted(languages.values()):
+                for i in sorted(languages):
                     print(i,file=sys.stderr)
                 sys.exit(1)
         self._language_exclude_list = llist
@@ -86,7 +75,7 @@ class UralexExporter:
         outlines.append("#NEXUS")
         outlines.append("[ dialect: %s ]" % self._export_dialect)
         outlines.append("[ data version: %s ]" % self._dataset.getVersion())
-        outlines.append("[ meaning list: %s ]" % self._meaning_list)
+        outlines.append("[ meaning list: %s ]" % self._dataset.getMeaningList())
         if self._dataset.excluded_languages != []:
             outlines.append("[ exclude taxa: %s ]" % str(self._dataset.excluded_languages)[1:-1])
         if self._with_charsets == False:
