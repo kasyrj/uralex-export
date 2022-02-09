@@ -11,21 +11,25 @@ import csv
 DATA_MAIN_FILE           = 'Data.tsv'
 LANGUAGE_FILE            = 'Languages.tsv'
 MLISTS_FILE              = 'Meaning_lists.tsv'
-MLISTS_DESC_FILE         = 'Meaning_list_descriptions.tsv'
-CITATION_FILE            = 'Citation_codes.tsv'
 MNAMES_FILE              = 'Meanings.tsv'
 MISSING_VALUES           = ("?","0")
 MULTISTATE_CHARS         = "abcdefghijklmnopqrstuvwxyz123456789"
 
 class UraLexReader:
-    def __init__(self, version, use_correlate_chars):
+    def __init__(self, version, args):
         if version == "raw":
             self._readCustomVersion(version)
         else:
             self._readReleaseVersion(version)
+        self._data = self._addUralexLanguageCode()
+        self.excluded_languages = args.exclude_taxa.split(",")
+        self._data = self._filterLanguages(self.excluded_languages)
+        self._meanings = self._getMeaningsFromList(args.meaning_list)
+        self._data = self._filterMeanings()
         self._missing_values = MISSING_VALUES
+        self._filterSingletons(args.correlate)
         self._language_dict = self._getLanguageDict()
-        self._data_dict = self._getDataDict(use_correlate_chars)
+        self._data_dict = self._getDataDict(args.correlate)
         self._mnglists_dict = self._getMngListsDict()
         self.MULTISTATE_CHARS = MULTISTATE_CHARS
 
@@ -48,21 +52,16 @@ class UraLexReader:
         return sorted(mnglists)
                 
     def getLanguages(self):
-        '''Return a dict with lgid3 keys and ASCII_name values of languages.'''
-        return self._language_dict
+        '''Return a list of languages'''
+        output = []
+        for row in self._data:
+            if row["uralex_lang"] not in output:
+                output.append(row["uralex_lang"])
+        return sorted(output)
 
     def getMeanings(self, mnglist="all"):
         '''Return list of meanings belonging to mnglist'''
-        mngs = []
-        if mnglist == "all":
-            for row in self._data:
-                mngs.append(row["uralex_mng"])
-            mngs = set(mngs)
-        else:
-            for row in self._mlists:
-                if row[mnglist] == "1":
-                    mngs.append(row["uralex_mng"])
-        return sorted(mngs)
+        return sorted(self._meanings)
 
     def getCharacterAlignment(self, language, meaning):
         '''Return character alignment of meaning in language'''
@@ -117,7 +116,7 @@ class UraLexReader:
         except:
             print("%s: Could not load dataset zip file contents." % version["zipfile"], file=sys.stderr)
             sys.exit(1)
-            
+
     def _getLanguageDict(self):
         '''Generate a language dict (key: lgid3, value: ASCII_name)'''
         lgid3_set = []
@@ -182,6 +181,82 @@ class UraLexReader:
             mnglists["all"].append(row["uralex_mng"])
         return mnglists
 
+    def _addUralexLanguageCode(self):
+        '''Add ASCII language codes to raw data to ease processing'''
+        if "uralex_lang" in self._data[0].keys():
+            return self._data
+        output  = []
+        for d_row in self._data:
+            for l_row in self._languages:
+                if l_row["lgid3"] == d_row["lgid3"]:
+                    d_row["uralex_lang"] = l_row["ASCII_name"]
+                    break
+            output.append(d_row)
+        return output
+
+    def _filterLanguages(self,excluded_langs):
+        '''Remove excluded languages from data'''
+        output = []
+        for row in self._data:
+            if row["uralex_lang"] in excluded_langs:
+                continue
+            output.append(row)
+        return(output)
+
+    def _getMeaningsFromList(self,meaning_list):
+        output = []
+        mlists = []
+        for i in self._mlists[0].keys():
+            if i not in ["uralex_mng", "LJ_rank", "mng_item"]:
+                mlists.append(i)
+        for row in self._mlists:
+            if meaning_list == "all":
+                output.append(row["uralex_mng"])
+                continue
+            if row[meaning_list] == "1":
+                output.append(row["uralex_mng"])
+                continue
+        return output
+    
+    def _filterMeanings(self):
+        '''Remove meanings from data'''
+        output = []
+        for row in self._data:
+            if row["uralex_mng"] in self._meanings:
+                output.append(row)
+        return output
+            
+    def _filterSingletons(self, use_correlate_chars):
+        '''Remove singletons from data'''
+        output = []
+        if use_correlate_chars == True:
+            data_field = "form_set"
+        else:
+            data_field = "cogn_set"
+        mngs = {}
+        for row in self._data:
+            m = row["uralex_mng"]
+            d = row[data_field]
+            if d in MISSING_VALUES:
+                continue
+            try:
+                mngs[m].append(d)
+            except KeyError:
+                mngs[m] = [d]
+        #print(mngs)
+        count = 0
+        to_filter = {}
+        for mng in mngs:
+            to_filter[mng] = []
+            for item in set(mngs[mng]):
+                if mngs[mng].count(item) == 1:
+                    to_filter[mng].append(item)
+        for row in self._data:
+            if row[data_field] in to_filter[row["uralex_mng"]]:
+                continue
+            output.append(row)
+        return output
+            
     def _getDataDict(self,use_correlate_chars):
         '''Return a data dict with [ASCII_name][mng] structure'''
         if use_correlate_chars == True:

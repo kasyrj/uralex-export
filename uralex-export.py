@@ -59,11 +59,18 @@ parser.add_argument("-1","--no-charsets",
 parser.add_argument("-c","--correlate",
                     dest="correlate",
                     action='store_true',
+                    default=False,
                     help="Export correlate characters instead of cognate (root-meaning form) characters.")
 parser.add_argument("-r","--raw_folder",
                     dest="raw_folder",
                     action='store_true',
                     help="Look for data in an uncompressed 'raw' folder rather than a released zip file.")
+parser.add_argument("-S","--no-singletons",
+                    dest="no_singletons",
+                    action='store_true',
+                    default=False,
+                    help="Remove singleton sites from data.")
+
 
 if __name__ == '__main__':
     
@@ -78,13 +85,13 @@ if __name__ == '__main__':
         excluded_languages = args.exclude_taxa.split(",")
     dialect = args.dialect
     if (args.raw_folder == True):
-        dataset = reader.UraLexReader("raw", args.correlate)
+        dataset = reader.UraLexReader("raw", args)
     else:
-        dataset = reader.UraLexReader(versions.getLatestVersion(), args.correlate)
+        dataset = reader.UraLexReader(versions.getLatestVersion(), args)
 
     exporter = exporter.UralexExporter(dataset)
-    exporter.setMeaningList(args.meaning_list)
-    exporter.setLanguageExcludeList(excluded_languages)
+    # exporter.setMeaningList(args.meaning_list)
+    # exporter.setLanguageExcludeList(excluded_languages)
     exporter.setFormat(args.format, args.dialect)
     exporter.setCharsets(args.charsets)
 

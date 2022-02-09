@@ -10,9 +10,9 @@ class UralexExporter:
         self._meaning_list = None          # set by setMeaningList
         self._export_format = None         # set by setFormat
         self._export_dialect = None        # set by setFormat
-        self._language_exclude_list = None # set by setLanguageExcludelist
-        self._exported_languages = None    # cached languages, built as needed
-        self._exported_meanings = None     # cached meanings, built as needed
+        # self._language_exclude_list = None # set by setLanguageExcludelist
+        # self._exported_languages = None    # cached languages, built as needed
+        # self._exported_meanings = None     # cached meanings, built as needed
         self._valid_chars = {}             # cached character states, built as needed
 
     def __del__(self):
@@ -87,8 +87,8 @@ class UralexExporter:
         outlines.append("[ dialect: %s ]" % self._export_dialect)
         outlines.append("[ data version: %s ]" % self._dataset.getVersion())
         outlines.append("[ meaning list: %s ]" % self._meaning_list)
-        if self._language_exclude_list != []:
-            outlines.append("[ exclude taxa: %s ]" % str(self._language_exclude_list)[1:-1])
+        if self._dataset.excluded_languages != []:
+            outlines.append("[ exclude taxa: %s ]" % str(self._dataset.excluded_languages)[1:-1])
         if self._with_charsets == False:
             outlines.append("[ Partitioning: none ]")
         else:
@@ -96,21 +96,13 @@ class UralexExporter:
         outlines.append("")
         return outlines
 
-    def _getExportedLanguages(self):
-        '''Return list of exported languages'''
-        if self._exported_languages == None:
-            all_languages = set(self._dataset.getLanguages().values())
-            excluded_languages = set(self._language_exclude_list)
-            self._exported_languages = sorted(all_languages.difference(excluded_languages))
-        return self._exported_languages
-    
     def _getNexusTaxaBlock(self):
         '''return a nexus taxa block based on the current generator settings.'''
         out = []
         out.append("begin taxa;")
-        out.append("dimensions ntax=%s;" % str(len(self._getExportedLanguages())))
+        out.append("dimensions ntax=%s;" % str(len(self._dataset.getLanguages())))
         line = "taxlabels"
-        for l in self._getExportedLanguages():
+        for l in self._dataset.getLanguages():
             line += (" " + l)
         line += (";")
         out.append(line)
@@ -118,18 +110,12 @@ class UralexExporter:
         out.append("")
         return out
 
-    def _getExportedMeanings(self):
-        '''Return a list of exported meanings'''
-        if self._exported_meanings == None:
-            self._exported_meanings = self._dataset.getMeanings(self._meaning_list)
-        return self._dataset.getMeanings(self._meaning_list)
-
     def _getValidCharacterStates(self, meaning):
         '''Return a sorted set of valid character states for a meaning based on exporter settings'''
         if meaning in self._valid_chars.keys():
             return self._valid_chars[meaning]
         valid_chars = []
-        for l in self._getExportedLanguages():
+        for l in self._dataset.getLanguages():
             current = self._dataset.getCharacterAlignment(l, meaning)
             for c in current:
                 if c == "?":
@@ -160,7 +146,7 @@ class UralexExporter:
 
     def _getAllMeaningsAsBinary(self, language):
         '''Return a tuple consisting of a list of all meanings and a corresponding list of their binary representations'''
-        mngs = self._getExportedMeanings()
+        mngs = self._dataset.getMeanings()
         substrings = []
         for m in mngs:
             substrings.append(self._getMeaningAsBinary(language,m))
@@ -213,7 +199,7 @@ class UralexExporter:
             start_pos = 2
         else:
             start_pos = 1
-        first_lang = self._getExportedLanguages()[0]
+        first_lang = self._dataset.getLanguages()[0]
         mngs, chars = self._getAllMeaningsAsBinary(first_lang)
         for i in range(len(mngs)):
             end_pos = start_pos + len(chars[i])-1
@@ -226,7 +212,7 @@ class UralexExporter:
     
     def _getCharacterCount(self):
         '''Calculate character count'''
-        lang = self._getExportedLanguages()[0] # Calculate based on first language
+        lang = self._dataset.getLanguages()[0] # Calculate based on first language
         return len(self._getFullBinaryString(lang))
     
     def _getNexusCharacterBlock(self):
@@ -239,7 +225,7 @@ class UralexExporter:
         elif self._export_dialect == "splitstree":
             out.append("format symbols=\"01\" missing=?;")        
         out.append("matrix")
-        langs = self._getExportedLanguages()
+        langs = self._dataset.getLanguages()
         for lang in langs:
             out.append(lang + " " + self._getFullBinaryString(lang))
         out.append(";")
@@ -261,8 +247,8 @@ class UralexExporter:
     def _exportCldf(self):
         '''Export CLDF format'''
         outlines = ["Language_ID,Feature_ID,Value"]
-        langs = self._getExportedLanguages()
-        mngs = self._getExportedMeanings()
+        langs = self._dataset.getLanguages()
+        mngs = self._dataset.getMeanings()
         for l in langs:
             for m in mngs:
                 c = self._dataset.getCharacterAlignment(l, m)
