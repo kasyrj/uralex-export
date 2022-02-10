@@ -5,6 +5,7 @@ import sys
 class UralexExporter:
     
     def __init__(self, dataset, args):
+        self._charset_labels = args.charset_labels
         self._dataset = dataset            # Reader class
         self._with_charsets = None         # set by setCharsets
         self._export_format = None         # set by setFormat
@@ -250,15 +251,19 @@ class UralexExporter:
     def _getNexusCharacterBlock(self):
         '''return a NEXUS character block based on the current generator settings.'''
         out = []
-        out.append("begin characters;")
-        out.append("dimensions nchar=%s;" % str(self._getCharacterCount()))
-        if self._export_dialect in ["beast", "mrbayes"]:
-            out.append("format missing=? datatype=restriction;")
-        elif self._export_dialect == "splitstree":
-            out.append("format symbols=\"01\" missing=?;")
-        if self._export_dialect == "beast":
+        if self._charset_labels:  # with charset labels datatype must be standard
+            out.append("begin data;")
+            out.append("dimensions ntax=%i nchar=%i;" % (len(self._dataset.getLanguages()), self._getCharacterCount()))
+            out.append("format datatype=standard missing=? symbols=\"01\";")
             out.append("charstatelabels")
             out += (self._getCharacterPositions())
+        else:        
+            out.append("begin characters;")
+            out.append("dimensions nchar=%i;" % self._getCharacterCount())
+            if self._export_dialect in ["beast", "mrbayes"]:
+                out.append("format missing=? datatype=restriction")
+            elif self._export_dialect == "splitstree":
+                out.append("format symbols=\"01\" missing=?;")
             
         out.append("matrix")
         for lang in self._dataset.getLanguages():

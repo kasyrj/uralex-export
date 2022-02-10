@@ -47,15 +47,6 @@ parser.add_argument("-f","--format",
                     help="Export format. Valid options: nexus, cldf.",
                     default="nexus",
                     type=str)
-parser.add_argument("-d","--dialect",
-                    dest="dialect",
-                    help="NEXUS dialect: mrbayes, beast, splitstree. Defaults to \"" + DEFAULT_NEXUS_DIALECT + "\"",
-                    default=DEFAULT_NEXUS_DIALECT)
-parser.add_argument("-1","--no-charsets",
-                    dest="charsets",
-                    help="Export without separate characters sets for each meaning",
-                    default=DEFAULT_CHARSETS,                    
-                    action='store_false')
 parser.add_argument("-c","--correlate",
                     dest="correlate",
                     action='store_true',
@@ -70,6 +61,21 @@ parser.add_argument("-S","--no-singletons",
                     action='store_true',
                     default=False,
                     help="Remove singleton sites from data.")
+parser.add_argument("-L","--charset-labels",
+                    dest="charset_labels",
+                    action='store_true',
+                    default=False,
+                    help="(NEXUS) Include charset labels.")
+parser.add_argument("-1","--no-charsets",
+                    dest="charsets",
+                    help="(NEXUS) Export without separate characters sets for each meaning",
+                    default=DEFAULT_CHARSETS,                    
+                    action='store_false')
+parser.add_argument("-d","--dialect",
+                    dest="dialect",
+                    help="(NEXUS) NEXUS dialect: mrbayes, beast, splitstree. Defaults to \"" + DEFAULT_NEXUS_DIALECT + "\"",
+                    default=DEFAULT_NEXUS_DIALECT)
+
 
 
 if __name__ == '__main__':
@@ -79,6 +85,10 @@ if __name__ == '__main__':
         sys.exit()
 
     args = parser.parse_args()
+
+    if args.charset_labels and args.dialect != 'beast':
+        print("Forcing beast dialect", file=sys.stderr)
+        args.dialect="beast"
 
     excluded_languages = []
     if args.exclude_taxa != "":
