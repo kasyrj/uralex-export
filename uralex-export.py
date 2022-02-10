@@ -53,23 +53,36 @@ parser.add_argument("-f","--format",
                     help="Export format. Valid options: nexus, cldf.",
                     default="nexus",
                     type=str)
-parser.add_argument("-d","--dialect",
-                    dest="dialect",
-                    help="NEXUS dialect: mrbayes, beast, splitstree. Defaults to \"" + DEFAULT_NEXUS_DIALECT + "\"",
-                    default=DEFAULT_NEXUS_DIALECT)
-parser.add_argument("-1","--no-charsets",
-                    dest="charsets",
-                    help="Export without separate characters sets for each meaning",
-                    default=DEFAULT_CHARSETS,                    
-                    action='store_false')
 parser.add_argument("-c","--correlate",
                     dest="correlate",
                     action='store_true',
+                    default=False,
                     help="Export correlate characters instead of cognate (root-meaning form) characters.")
 parser.add_argument("-r","--raw_folder",
                     dest="raw_folder",
                     action='store_true',
                     help="Look for data in an uncompressed 'raw' folder rather than a released zip file.")
+parser.add_argument("-S","--no-singletons",
+                    dest="no_singletons",
+                    action='store_true',
+                    default=False,
+                    help="Remove singleton sites from data.")
+parser.add_argument("-L","--charset-labels",
+                    dest="charset_labels",
+                    action='store_true',
+                    default=False,
+                    help="(NEXUS) Include charset labels.")
+parser.add_argument("-1","--no-charsets",
+                    dest="charsets",
+                    help="(NEXUS) Export without separate characters sets for each meaning",
+                    default=DEFAULT_CHARSETS,                    
+                    action='store_false')
+parser.add_argument("-d","--dialect",
+                    dest="dialect",
+                    help="(NEXUS) NEXUS dialect: mrbayes, beast, splitstree. Defaults to \"" + DEFAULT_NEXUS_DIALECT + "\"",
+                    default=DEFAULT_NEXUS_DIALECT)
+
+
 
 if __name__ == '__main__':
     
@@ -79,20 +92,22 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if args.charset_labels and args.dialect != 'beast':
+        print("Forcing beast dialect", file=sys.stderr)
+        args.dialect="beast"
+
     excluded_languages = []
     if args.exclude_taxa != "":
         excluded_languages = args.exclude_taxa.split(",")
     dialect = args.dialect
     if (args.raw_folder == True):
-        dataset = reader.UraLexReader("raw", args.correlate)
+        dataset = reader.UraLexReader("raw", args)
     else:
-        dataset = reader.UraLexReader(versions.getLatestVersion(args.experimental), args.correlate)
+        dataset = reader.UraLexReader(versions.getLatestVersion(args.experimental), args)
 
-    exporter = exporter.UralexExporter(dataset)
-    exporter.setMeaningList(args.meaning_list)
-    exporter.setLanguageExcludeList(excluded_languages)
-    exporter.setFormat(args.format, args.dialect)
-    exporter.setCharsets(args.charsets)
+    exporter = exporter.UralexExporter(dataset, args)
+    # exporter.setMeaningList(args.meaning_list)
+    # exporter.setLanguageExcludeList(excluded_languages)
 
     #print("Export")
 
