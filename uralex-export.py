@@ -66,7 +66,12 @@ parser.add_argument("-S","--no-singletons",
                     dest="no_singletons",
                     action='store_true',
                     default=False,
-                    help="Remove singleton sites from data.")
+                    help="Remove singleton meanings from data.")
+parser.add_argument("-I","--no-invariables",
+                    dest="no_invariables",
+                    action='store_true',
+                    default=False,
+                    help="Remove invariable meanings from data.")
 parser.add_argument("-L","--charset-labels",
                     dest="charset_labels",
                     action='store_true',
@@ -106,11 +111,6 @@ if __name__ == '__main__':
         dataset = reader.UraLexReader(versions.getLatestVersion(args.experimental), args)
 
     exporter = exporter.UralexExporter(dataset, args)
-    # exporter.setMeaningList(args.meaning_list)
-    # exporter.setLanguageExcludeList(excluded_languages)
-
-    #print("Export")
-
     outlines = exporter.export()
 
     if args.outfile != None:

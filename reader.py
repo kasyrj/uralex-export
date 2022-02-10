@@ -30,6 +30,8 @@ class UraLexReader:
         self._missing_values = MISSING_VALUES
         if args.no_singletons:                                             # Remove singletons
             self._data = self._filterSingletons(args.correlate)
+        if args.no_invariables:                                             # Remove invariables
+            self._data = self._filterInvariables(args.correlate)
         self._meanings = self.getMeanings(True)                            # Populate meaning list
         self._languages = self.getLanguages(True)                          # Populate language list
         self._meaning_list = args.meaning_list                             
@@ -193,7 +195,36 @@ class UraLexReader:
             if row["uralex_mng"] in meanings:
                 output.append(row)
         return output
-            
+
+    def _filterInvariables(self, use_correlate_chars):
+        '''Remove invariable sites from data'''        
+        output = []
+        if use_correlate_chars == True:
+            data_field = "form_set"
+        else:
+            data_field = "cogn_set"
+        mngs = {}
+        for row in self._data:
+            m = row["uralex_mng"]
+            d = row[data_field]
+            if d in MISSING_VALUES:
+                continue
+            try:
+                mngs[m].append(d)
+            except KeyError:
+                mngs[m] = [d]
+        count = 0
+        to_filter = []
+        for mng in mngs:
+            if len(set(mngs[mng])) == 1:
+                to_filter.append(mng)
+        for row in self._data:
+            if row["uralex_mng"] in to_filter:
+                continue
+            output.append(row)
+        print("Invariable meanings: " + str(to_filter), file=sys.stderr)
+        return output
+
     def _filterSingletons(self, use_correlate_chars):
         '''Remove singletons from data'''
         output = []
@@ -213,28 +244,23 @@ class UraLexReader:
                 mngs[m] = [d]
         #print(mngs)
         count = 0
-        to_filter = {}
+        to_filter = []
         for mng in mngs:
-            to_filter[mng] = []
-            for item in set(mngs[mng]):
-                if mngs[mng].count(item) == 1:
-                    to_filter[mng].append(item)
-                    count += 1
+            if len(set(mngs[mng])) == len(mngs[mng]):
+                to_filter.append(mng)
         for row in self._data:
-            if row[data_field] in to_filter[row["uralex_mng"]]:
+            if row["uralex_mng"] in to_filter:
                 continue
             output.append(row)
-        #for k in sorted(to_filter.keys()):
-        #    print(k + ": " + str(sorted(to_filter[k])),file=sys.stderr)
-        #print("Removed %i singletons." % count, file=sys.stderr)
+        print("Singleton meanings: " + str(to_filter), file=sys.stderr)
         return output
-            
+    
     def _getDataDict(self,use_correlate_chars):
+        '''Return a data dict with [uralex_lang][mng] structure'''
         data_matrix = {}
         for lang in self.getLanguages():
             data_matrix[lang] = {}
         meaning_set = self.getMeanings()
-        # print(meaning_set)
         for lang in data_matrix.keys():
             for mng in meaning_set:
                 data_matrix[lang][mng] = []
