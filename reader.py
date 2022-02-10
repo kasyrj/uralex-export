@@ -16,23 +16,27 @@ MISSING_VALUES           = ("?","0")
 
 class UraLexReader:
     def __init__(self, version, args):
+        # Read custom version (raw folder) or a zipped release version based on settings
         if version == "raw":
             self._readCustomVersion(version)
         else:
             self._readReleaseVersion(version)
-        self._data = self._addUralexLanguageCode()
-        self._meaning_list = args.meaning_list
-        self.excluded_languages = args.exclude_taxa.split(",")
-        self._data = self._filterLanguages(self.excluded_languages)
-        self._meanings = self._getMeaningsFromList(args.meaning_list)
-        self._data = self._filterMeanings()
+        self._data = self._addUralexLanguageCode()                         # Add uralex_lang key for main data sheet
+        self._all_languages = self.getLanguages(True)                      # Store list of all languages
+        self._data = self._filterLanguages(args.exclude_taxa.split(","))   # Remove excluded languages
+        meanings = self._getMeaningsFromList(args.meaning_list)         
+        self._data = self._filterMeanings(meanings)                        # Remove excluded meanings
         self._missing_values = MISSING_VALUES
-        if args.no_singletons:
+        if args.no_singletons:                                             # Remove singletons
             self._data = self._filterSingletons(args.correlate)
-        self._meanings = self.getMeanings(True)
-        self._languages = self.getLanguages(True)
-        self._meaning_list = args.meaning_list
-        self._data_dict = self._getDataDict(args.correlate)
+        self._meanings = self.getMeanings(True)                            # Populate meaning list
+        self._languages = self.getLanguages(True)                          # Populate language list
+        self._meaning_list = args.meaning_list                             
+        if set(self._getMeaningsFromList(args.meaning_list)) != set(self._meanings):  # Customize list identifier to show missing meanings
+            orig_list = set(self._getMeaningsFromList(args.meaning_list))
+            difference = orig_list.difference(set(self._meanings))
+            self._meaning_list += " [excl. %s]" %str(difference)
+        self._data_dict = self._getDataDict(args.correlate)                           # Generate data dict for faster access
 
     def __del__(self):
         pass
@@ -52,15 +56,19 @@ class UraLexReader:
                 mnglists.append(i)
         return sorted(mnglists)
 
-    def getMeaningList(self, not_cached=False):
-        '''Return the current meaning list of the data. Use not_cached=True to update cached version.'''
+    def getMeaningList(self):
+        '''Return current meaning list'''
+        return self._meaning_list
+    
+    def getMeanings(self, not_cached=False):
+        '''Return list of meanings in the data'''
         if not_cached:
             output = []
             for row in self._data:
                 if row["uralex_mng"] not in output:
-                    output.append(row["uralex_lang"])
-            return output
-        return self._meaning_list
+                    output.append(row["uralex_mng"])
+            return sorted(output)
+        return sorted(self._meanings)
     
     def getLanguages(self, not_cached =False):
         '''Return a list of languages. Use not_cached=True to update cached version'''
@@ -72,12 +80,12 @@ class UraLexReader:
             return sorted(output)
         return self._languages
 
-    def getMeanings(self, mnglist="all"):
-        '''Return list of meanings belonging to mnglist'''
-        return sorted(self._meanings)
-
+    def getExcludedLanguages(self, not_cached =False):
+        '''Return a list of excluded languages.'''
+        return list(set(self._all_languages).difference(set(self.getLanguages())))
+    
     def getCharacterAlignment(self, language, meaning):
-        '''Return character alignment of meaning in language'''
+        '''Return character alignment (=list of characters) of meaning in language'''
         return self._data_dict[language][meaning]
 
     def getVersion(self):
@@ -126,41 +134,40 @@ class UraLexReader:
             print("%s: Could not load dataset zip file contents." % version["zipfile"], file=sys.stderr)
             sys.exit(1)
 
-    def _getCognSetOrder(self):
-        '''Return a list of all cogn_set values present in the data matrix, with
-        one-character sets in an alphabetical order, followed by two-character sets in
-        an alphabetical order.'''
-        cogn_sorting_order = []
-        one_char = []
-        two_char = []
-        cogn_characters = []
-        for row in self._data:
-            cogn_characters.append(row["cogn_set"])
-        cogn_characters = set(cogn_characters)
-        for i in cogn_characters:
-            try:
-                a,b = i
-                two_char.append(i)
-            except:
-                if i not in self._missing_values:
-                    one_char.append(i)
-        cogn_sorting_order += sorted(one_char) + sorted(two_char)
-        return(cogn_sorting_order)
-
-    def _getFormSetOrder(self):
-        '''Return a list of all form_set values present in the data matrix, in an ascending order.'''
-        forms = []
-        form_characters = []
-        for row in self._data:
-            form_characters.append(row["form_set"])
-        form_characters = set(form_characters)
-
-        for i in form_characters:
-            if i not in self._missing_values:
-                forms.append(i)
-        forms.sort(key=int)
-        return(forms)
-
+    
+    # def _getCognSetOrder(self):
+    #     '''Return a list of all cogn_set values present in the data matrix, with
+    #     one-character sets in an alphabetical order, followed by two-character sets in
+    #     an alphabetical order.'''
+    #     cogn_sorting_order = []
+    #     one_char = []
+    #     two_char = []
+    #     cogn_characters = []
+    #     for row in self._data:
+    #         cogn_characters.append(row["cogn_set"])
+    #     cogn_characters = set(cogn_characters)
+    #     for i in cogn_characters:
+    #         try:
+    #             a,b = i
+    #             two_char.append(i)
+    #         except:
+    #             if i not in self._missing_values:
+    #                 one_char.append(i)
+    #     cogn_sorting_order += sorted(one_char) + sorted(two_char)
+    #     return(cogn_sorting_order)
+    # def _getFormSetOrder(self):
+    #     '''Return a list of all form_set values present in the data matrix, in an ascending order.'''
+    #     forms = []
+    #     form_characters = []
+    #     for row in self._data:
+    #         form_characters.append(row["form_set"])
+    #     form_characters = set(form_characters)
+    #     for i in form_characters:
+    #         if i not in self._missing_values:
+    #             forms.append(i)
+    #     forms.sort(key=int)
+    #     return(forms)
+    
     def _addUralexLanguageCode(self):
         '''Add ASCII language codes to raw data to ease processing'''
         if "uralex_lang" in self._data[0].keys():
@@ -174,16 +181,8 @@ class UraLexReader:
             output.append(d_row)
         return output
 
-    def _filterLanguages(self,excluded_langs):
-        '''Remove excluded languages from data'''
-        output = []
-        for row in self._data:
-            if row["uralex_lang"] in excluded_langs:
-                continue
-            output.append(row)
-        return(output)
-
     def _getMeaningsFromList(self,meaning_list):
+        '''Return meanings belonging to specified list'''
         output = []
         mlists = []
         for i in self._mlists[0].keys():
@@ -197,12 +196,21 @@ class UraLexReader:
                 output.append(row["uralex_mng"])
                 continue
         return output
+
+    def _filterLanguages(self,excluded_langs):
+        '''Remove excluded languages from data'''
+        output = []
+        for row in self._data:
+            if row["uralex_lang"] in excluded_langs:
+                continue
+            output.append(row)
+        return(output)
     
-    def _filterMeanings(self):
+    def _filterMeanings(self, meanings):
         '''Remove meanings from data'''
         output = []
         for row in self._data:
-            if row["uralex_mng"] in self._meanings:
+            if row["uralex_mng"] in meanings:
                 output.append(row)
         return output
             
@@ -236,21 +244,22 @@ class UraLexReader:
             if row[data_field] in to_filter[row["uralex_mng"]]:
                 continue
             output.append(row)
-        for k in sorted(to_filter.keys()):
-            print(k + ": " + str(sorted(to_filter[k])),file=sys.stderr)
-        print("Removed %i singletons." % count, file=sys.stderr)
+        #for k in sorted(to_filter.keys()):
+        #    print(k + ": " + str(sorted(to_filter[k])),file=sys.stderr)
+        #print("Removed %i singletons." % count, file=sys.stderr)
         return output
             
     def _getDataDict(self,use_correlate_chars):
         '''Return a data dict with [ASCII_name][mng] structure'''
-        if use_correlate_chars == True:
-            char_set_order = self._getFormSetOrder()
-        else:
-            char_set_order = self._getCognSetOrder()
+        #if use_correlate_chars == True:
+        #    char_set_order = self._getFormSetOrder()
+        #else:
+        #    char_set_order = self._getCognSetOrder()
         data_matrix = {}
         for lang in self.getLanguages():
             data_matrix[lang] = {}
         meaning_set = self.getMeanings()
+        # print(meaning_set)
         for lang in data_matrix.keys():
             for mng in meaning_set:
                 data_matrix[lang][mng] = []

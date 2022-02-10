@@ -89,11 +89,9 @@ if __name__ == '__main__':
     else:
         dataset = reader.UraLexReader(versions.getLatestVersion(), args)
 
-    exporter = exporter.UralexExporter(dataset)
+    exporter = exporter.UralexExporter(dataset, args)
     # exporter.setMeaningList(args.meaning_list)
     # exporter.setLanguageExcludeList(excluded_languages)
-    exporter.setFormat(args.format, args.dialect)
-    exporter.setCharsets(args.charsets)
 
     #print("Export")
 
