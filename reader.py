@@ -29,6 +29,8 @@ class UraLexReader:
         self._missing_values = MISSING_VALUES
         if args.no_singletons:                                             # Remove singletons
             self._data = self._filterSingletons(args.correlate)
+        if args.no_invariables:                                             # Remove invariables
+            self._data = self._filterInvariables(args.correlate)
         self._meanings = self.getMeanings(True)                            # Populate meaning list
         self._languages = self.getLanguages(True)                          # Populate language list
         self._meaning_list = args.meaning_list                             
@@ -134,40 +136,6 @@ class UraLexReader:
             print("%s: Could not load dataset zip file contents." % version["zipfile"], file=sys.stderr)
             sys.exit(1)
 
-    
-    # def _getCognSetOrder(self):
-    #     '''Return a list of all cogn_set values present in the data matrix, with
-    #     one-character sets in an alphabetical order, followed by two-character sets in
-    #     an alphabetical order.'''
-    #     cogn_sorting_order = []
-    #     one_char = []
-    #     two_char = []
-    #     cogn_characters = []
-    #     for row in self._data:
-    #         cogn_characters.append(row["cogn_set"])
-    #     cogn_characters = set(cogn_characters)
-    #     for i in cogn_characters:
-    #         try:
-    #             a,b = i
-    #             two_char.append(i)
-    #         except:
-    #             if i not in self._missing_values:
-    #                 one_char.append(i)
-    #     cogn_sorting_order += sorted(one_char) + sorted(two_char)
-    #     return(cogn_sorting_order)
-    # def _getFormSetOrder(self):
-    #     '''Return a list of all form_set values present in the data matrix, in an ascending order.'''
-    #     forms = []
-    #     form_characters = []
-    #     for row in self._data:
-    #         form_characters.append(row["form_set"])
-    #     form_characters = set(form_characters)
-    #     for i in form_characters:
-    #         if i not in self._missing_values:
-    #             forms.append(i)
-    #     forms.sort(key=int)
-    #     return(forms)
-    
     def _addUralexLanguageCode(self):
         '''Add ASCII language codes to raw data to ease processing'''
         if "uralex_lang" in self._data[0].keys():
@@ -213,7 +181,36 @@ class UraLexReader:
             if row["uralex_mng"] in meanings:
                 output.append(row)
         return output
-            
+
+    def _filterInvariables(self, use_correlate_chars):
+        '''Remove invariable sites from data'''        
+        output = []
+        if use_correlate_chars == True:
+            data_field = "form_set"
+        else:
+            data_field = "cogn_set"
+        mngs = {}
+        for row in self._data:
+            m = row["uralex_mng"]
+            d = row[data_field]
+            if d in MISSING_VALUES:
+                continue
+            try:
+                mngs[m].append(d)
+            except KeyError:
+                mngs[m] = [d]
+        count = 0
+        to_filter = []
+        for mng in mngs:
+            if len(set(mngs[mng])) == 1:
+                to_filter.append(mng)
+        for row in self._data:
+            if row["uralex_mng"] in to_filter:
+                continue
+            output.append(row)
+        print("Invariable meanings: " + str(to_filter), file=sys.stderr)
+        return output
+
     def _filterSingletons(self, use_correlate_chars):
         '''Remove singletons from data'''
         output = []
@@ -233,33 +230,23 @@ class UraLexReader:
                 mngs[m] = [d]
         #print(mngs)
         count = 0
-        to_filter = {}
+        to_filter = []
         for mng in mngs:
-            to_filter[mng] = []
-            for item in set(mngs[mng]):
-                if mngs[mng].count(item) == 1:
-                    to_filter[mng].append(item)
-                    count += 1
+            if len(set(mngs[mng])) == len(mngs[mng]):
+                to_filter.append(mng)
         for row in self._data:
-            if row[data_field] in to_filter[row["uralex_mng"]]:
+            if row["uralex_mng"] in to_filter:
                 continue
             output.append(row)
-        #for k in sorted(to_filter.keys()):
-        #    print(k + ": " + str(sorted(to_filter[k])),file=sys.stderr)
-        #print("Removed %i singletons." % count, file=sys.stderr)
+        print("Singleton meanings: " + str(to_filter), file=sys.stderr)
         return output
-            
+    
     def _getDataDict(self,use_correlate_chars):
         '''Return a data dict with [ASCII_name][mng] structure'''
-        #if use_correlate_chars == True:
-        #    char_set_order = self._getFormSetOrder()
-        #else:
-        #    char_set_order = self._getCognSetOrder()
         data_matrix = {}
         for lang in self.getLanguages():
             data_matrix[lang] = {}
         meaning_set = self.getMeanings()
-        # print(meaning_set)
         for lang in data_matrix.keys():
             for mng in meaning_set:
                 data_matrix[lang][mng] = []
