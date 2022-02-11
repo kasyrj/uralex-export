@@ -136,7 +136,7 @@ class UralexExporter:
             for c in current:                                              # add everything but ? to valid character states
                 if c == "?":
                     continue
-                valid_chars += c
+                valid_chars.append(c)
         result = sorted(set(valid_chars))                                  # remove duplicates
         self._character_state_cache[meaning] = result                      # store to cache for later use
         return result
