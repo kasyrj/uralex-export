@@ -227,11 +227,11 @@ class UralexExporter:
     def _getCharacterPositions(self, with_ascertainment=True):
         '''Return list of character positions of the form mng_char, followed by their positions in the matrix'''
         out = []
-        char_pos = 0
+        char_pos = 1
         for mng in self._dataset.getMeanings():                     # meanings ordered according to _getMeanings()
             charstates = self._getValidCharacterStates(mng)         # character states ordered according to _getValidCharacterStates()
             if with_ascertainment:
-                out.append("    %i %s_ascertainment," % (char_pos, mng))
+                out.append("    %i %s_0ascertainment," % (char_pos, mng))
                 char_pos += 1
             for char in charstates:
                 out.append("    %i %s_%s," % (char_pos, mng, char))
