@@ -50,7 +50,7 @@ parser.add_argument("-l","--meaning-list",
                     type=str)
 parser.add_argument("-f","--format",
                     dest="format",
-                    help="Export format. Valid options: nexus, cldf.",
+                    help="Export format. Valid options: nexus, cldf, harvest.",
                     default="nexus",
                     type=str)
 parser.add_argument("-c","--correlate",

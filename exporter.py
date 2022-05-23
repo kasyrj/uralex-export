@@ -26,6 +26,8 @@ class UralexExporter:
             return self._exportNexus()
         if self._export_format == "cldf":
             return self._exportCldf()
+        if self._export_format == "harvest":
+            return self._exportHarvest()
         return []
 
     def _exportNexus(self):
@@ -50,6 +52,26 @@ class UralexExporter:
                 c = self._dataset.getCharacterAlignment(l, m)
                 for i in c:
                     outlines.append(l + "," + m + "," + i)
+        return outlines
+
+    def _exportHarvest(self):
+        '''Export harvest format'''
+        outlines = []
+        header = "language,"
+        for mng in self._dataset.getMeanings():
+            header += mng + ","
+        header = header[:-1]
+        outlines.append(header)
+        langs = self._dataset.getLanguages()
+        mngs = self._dataset.getMeanings()
+        for l in langs:
+            newline = ""
+            newline += l + ","
+            for m in mngs:
+                c = self._dataset.getCharacterAlignment(l, m)
+                newline += c[0] + ','
+            newline = newline[:-1]
+            outlines.append(newline)
         return outlines
     
     def _getNexusHeader(self):
@@ -104,7 +126,7 @@ class UralexExporter:
             
     def _getValidFormats(self):
         '''Return list of valid formats'''
-        return ["nexus","cldf"]           
+        return ["nexus","cldf","harvest"]           
     
     def _getValidDialects(self, format):
         '''Return list of valid dialects of format'''
